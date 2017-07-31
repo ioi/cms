@@ -164,6 +164,9 @@ class ScoringExecutor(Executor):
                 value=(make_datetime() - submission.timestamp).total_seconds()
             )
 
+            logger.info("Submission scored %d seconds after submission",
+                        (make_datetime() - submission.timestamp).total_seconds())
+
             # If dataset is the active one, update RWS.
             if dataset is submission.task.active_dataset:
                 if submission.id not in changed_task_results:
