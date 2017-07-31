@@ -609,10 +609,10 @@ class QueueService(TriggeredService):
 
         with SessionGen() as session:
             # First we load all involved submissions.
-            if dataset_id is not None:
+            if (dataset_id is not None) and (submission_id is None):
                 dataset = Dataset.get_from_id(dataset_id, session)
                 task_id_for_submissions = dataset.task_id
-            if task_id is not None:
+            else:
                 task_id_for_submissions = task_id
             submissions = get_submissions(
                 # Give contest_id only if all others are None.
