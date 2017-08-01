@@ -231,16 +231,6 @@ class Communication2017(TaskType):
                 filename, digest, executable=True)
         for filename, digest in manager_files_to_get.iteritems():
             sandbox_mgr.create_file_from_storage(filename, digest)
-        manager = evaluation_step_before_run(
-            sandbox_mgr,
-            manager_command,
-            num_processes * job.time_limit,
-            0,
-            allow_dirs=manager_allow_dirs,
-            writable_files=["output.txt"],
-            stdin_redirect="input.txt",
-            stdout_redirect="output.txt",
-        )
 
         # Second step: we start the user submission compiled with the
         # stub.
@@ -252,6 +242,24 @@ class Communication2017(TaskType):
             }
         processes = [None for i in indices]
         for i in indices:
+            for filename, digest in executables_to_get.iteritems():
+                sandbox_user[i].create_file_from_storage(
+                    filename, digest, executable=True)
+
+        manager = evaluation_step_before_run(
+            sandbox_mgr,
+            manager_command,
+            num_processes * job.time_limit,
+            0,
+            allow_dirs=manager_allow_dirs,
+            writable_files=["output.txt"],
+            stdin_redirect="input.txt",
+            stdout_redirect="output.txt",
+        )
+        for i in indices:
+            # Assumes that the actual execution of the user solution
+            # is the last command in commands, and that the previous
+            # are "setup" that doesn't need tight control.
             args = [fifo_out[i], fifo_in[i]]
             if num_processes != 1:
                 args.append(str(i))
@@ -259,15 +267,9 @@ class Communication2017(TaskType):
                 executable_filename,
                 main="grader",
                 args=args)
-            user_allow_dirs = [fifo_dir[i]]
-            for filename, digest in executables_to_get.iteritems():
-                sandbox_user[i].create_file_from_storage(
-                    filename, digest, executable=True)
-            # Assumes that the actual execution of the user solution
-            # is the last command in commands, and that the previous
-            # are "setup" that doesn't need tight control.
             if len(commands) > 1:
                 evaluation_step(sandbox_user[i], commands[:-1], 10, 256)
+            user_allow_dirs = [fifo_dir[i]]
             processes[i] = evaluation_step_before_run(
                 sandbox_user[i],
                 commands[-1],
