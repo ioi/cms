@@ -93,7 +93,7 @@ class JavaJDK(Language):
                      "-XX:+UseSerialGC",
                      "-Xbatch", "-XX:-TieredCompilation",
                      "-XX:CICompilerCount=1", "-XX:NewRatio=3",
-                     "-Xmx420M", "-Xss64M", "-cp",
+                     "-Xmx1640M", "-Xss64M", "-cp",
                      executable_filename, main] + args]
         else:
             unzip_command = ["/usr/bin/unzip", executable_filename]
@@ -101,5 +101,5 @@ class JavaJDK(Language):
                        "-XX:+UseSerialGC",
                        "-Xbatch", "-XX:-TieredCompilation",
                        "-XX:CICompilerCount=1", "-XX:NewRatio=3",
-                       "-Xmx420M", "-Xss64M", main] + args
+                       "-Xmx1640M", "-Xss64M", main] + args
             return [unzip_command, command]
