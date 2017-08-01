@@ -63,7 +63,7 @@ class Cpp14Gpp(CompiledLanguage):
         if for_evaluation:
             command += ["-DEVAL"]
         command += ["-std=gnu++14", "-O2", "-pipe", "-static",
-                    "-o", executable_filename]
+                    "-s", "-o", executable_filename]
         command += source_filenames
         return [command]
 
