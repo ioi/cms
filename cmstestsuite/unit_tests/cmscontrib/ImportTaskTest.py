@@ -192,7 +192,7 @@ class TestImportTask(DatabaseMixin, unittest.TestCase):
         # check by looking at the task type.
         new_title = "new_title"
         new_task = self.get_task(name=self.task_name, title=new_title)
-        new_task_type = "Batch"
+        new_task_type = "OutputOnly"
         self.get_dataset(task=new_task, description=self.dataset_description,
                          task_type=new_task_type)
         self.assertNotEqual(new_task_type, self.dataset.task_type)
@@ -203,7 +203,7 @@ class TestImportTask(DatabaseMixin, unittest.TestCase):
         self.assertTaskInDb(self.task_name, new_title, self.contest_id,
                             task_id=self.task_id,
                             dataset_descriptions=[self.dataset_description],
-                            dataset_task_types=["Batch"])
+                            dataset_task_types=["OutputOnly"])
 
     def test_task_exists_update_new_manager(self):
         # Task exists, and we update it, attaching it to the same contest.
