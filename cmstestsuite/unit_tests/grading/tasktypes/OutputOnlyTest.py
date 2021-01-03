@@ -29,8 +29,8 @@ from cmstestsuite.unit_tests.grading.tasktypes.tasktypetestutils import \
     OUTCOME, TEXT, TaskTypeTestMixin
 
 
-FILE_001 = File(digest="digest of 001", filename="output_001.txt")
-FILE_023 = File(digest="digest of 023", filename="output_023.txt")
+FILE_001 = File(digest="digest of 001", filename="001.out")
+FILE_023 = File(digest="digest of 023", filename="023.out")
 
 
 class TestEvaluate(TaskTypeTestMixin, unittest.TestCase):
@@ -69,8 +69,8 @@ class TestEvaluate(TaskTypeTestMixin, unittest.TestCase):
 
     def test_diff_success(self):
         tt, job = self.prepare(["diff"], {
-            "output_001.txt": FILE_001,
-            "output_023.txt": FILE_023
+            "001.out": FILE_001,
+            "023.out": FILE_023
         })
 
         tt.evaluate(job, self.file_cacher)
@@ -81,7 +81,7 @@ class TestEvaluate(TaskTypeTestMixin, unittest.TestCase):
 
     def test_diff_missing_file(self):
         tt, job = self.prepare(["diff"], {
-            "output_001.txt": FILE_001,
+            "001.out": FILE_001,
         })
 
         tt.evaluate(job, self.file_cacher)
@@ -92,8 +92,8 @@ class TestEvaluate(TaskTypeTestMixin, unittest.TestCase):
 
     def test_diff_failure(self):
         tt, job = self.prepare(["diff"], {
-            "output_001.txt": FILE_001,
-            "output_023.txt": FILE_023
+            "001.out": FILE_001,
+            "023.out": FILE_023
         })
         self.eval_output.return_value = False, None, None
 
@@ -105,8 +105,8 @@ class TestEvaluate(TaskTypeTestMixin, unittest.TestCase):
 
     def test_comparator_success(self):
         tt, job = self.prepare(["comparator"], {
-            "output_001.txt": FILE_001,
-            "output_023.txt": FILE_023
+            "001.out": FILE_001,
+            "023.out": FILE_023
         })
 
         tt.evaluate(job, self.file_cacher)

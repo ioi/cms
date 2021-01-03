@@ -21,7 +21,7 @@ task_info = {
     "title": "Test OutputOnly Task",
     "official_language": "",
     "submission_format_choice": "other",
-    "submission_format": "output_000.txt, output_001.txt",
+    "submission_format": "000.out, 001.out",
     "time_limit_{{dataset_id}}": "0.5",
     "memory_limit_{{dataset_id}}": "128",
     "task_type_{{dataset_id}}": "OutputOnly",
@@ -33,6 +33,6 @@ task_info = {
 managers = []
 
 test_cases = [
-    ("input_000.txt", "output_000.txt", True),
-    ("input_001.txt", "output_001.txt", False),
+    ("000.in", "000.out", True),
+    ("001.in", "001.out", False),
 ]
