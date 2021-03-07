@@ -31,6 +31,7 @@ import logging
 
 from cms import config
 from cms.db import Submission, File, UserTestManager, UserTestFile, UserTest
+from cmscommon.constants import SCORE_MODE_MAX_TOKENED_LAST
 from cmscommon.datetime import make_timestamp
 from .check import check_max_number, check_min_interval
 from .file_matching import InvalidFilesOrLanguage, match_files_and_language
@@ -150,9 +151,10 @@ def accept_submission(sql_session, file_cacher, participation, task, timestamp,
     missing_codenames = required_codenames.difference(files.keys())
     if len(missing_codenames) > 0:
         if task.active_dataset.task_type_object.ALLOW_PARTIAL_SUBMISSION:
-            digests = fetch_file_digests_from_previous_submission(
-                sql_session, participation, task, language,
-                missing_codenames)
+            if task.score_mode == SCORE_MODE_MAX_TOKENED_LAST:
+                digests = fetch_file_digests_from_previous_submission(
+                    sql_session, participation, task, language,
+                    missing_codenames)
         else:
             raise UnacceptableSubmission(
                 N_("Invalid submission format!"),
