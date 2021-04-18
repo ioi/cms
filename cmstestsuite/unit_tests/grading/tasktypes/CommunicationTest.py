@@ -32,7 +32,6 @@ from cmstestsuite.unit_tests.grading.tasktypes.tasktypetestutils import \
     COMPILATION_COMMAND_1, COMPILATION_COMMAND_2, LANG_1, LANG_2, OUTCOME, \
     STATS_OK, STATS_RE, TEXT, TaskTypeTestMixin, fake_compilation_commands
 
-
 FILE_FOO_L1 = File(digest="digest of foo.l1", filename="foo.%l")
 FILE_BAR_L1 = File(digest="digest of bar.l1", filename="bar.%l")
 MANAGER = Manager(digest="digest of manager", filename="manager")
@@ -49,7 +48,7 @@ class TestGetCompilationCommands(TaskTypeTestMixin, unittest.TestCase):
         self.languages.update({LANG_1, LANG_2})
 
     def test_single_process(self):
-        tt = Communication([1, "stub", "fifo_io"])
+        tt = Communication([1, "stub", "fifo_io", "eval_manager"])
         cc = tt.get_compilation_commands(["foo.%l"])
         self.assertEqual(cc, {
             "L1": fake_compilation_commands(
@@ -61,7 +60,7 @@ class TestGetCompilationCommands(TaskTypeTestMixin, unittest.TestCase):
     def test_two_processes(self):
         # Compilation commands are the same regardless of the number of
         # processes.
-        tt = Communication([2, "stub", "fifo_io"])
+        tt = Communication([2, "stub", "fifo_io", "eval_manager"])
         cc = tt.get_compilation_commands(["foo.%l"])
         self.assertEqual(cc, {
             "L1": fake_compilation_commands(
@@ -73,7 +72,7 @@ class TestGetCompilationCommands(TaskTypeTestMixin, unittest.TestCase):
     def test_many_files(self):
         # Communication supports multiple files in the submission format, that
         # are just compiled together.
-        tt = Communication([1, "stub", "fifo_io"])
+        tt = Communication([1, "stub", "fifo_io", "eval_manager"])
         cc = tt.get_compilation_commands(["foo.%l", "bar.%l"])
         self.assertEqual(cc, {
             "L1": fake_compilation_commands(
@@ -87,7 +86,7 @@ class TestGetCompilationCommands(TaskTypeTestMixin, unittest.TestCase):
     def test_no_stub(self):
         # Submissions can be compiled as stand-alone programs, with no
         # stubs.
-        tt = Communication([1, "alone", "fifo_io"])
+        tt = Communication([1, "alone", "fifo_io", "eval_manager"])
         cc = tt.get_compilation_commands(["foo.%l"])
         self.assertEqual(cc, {
             "L1": fake_compilation_commands(
@@ -99,7 +98,7 @@ class TestGetCompilationCommands(TaskTypeTestMixin, unittest.TestCase):
     def test_std_io(self):
         # Compilation commands are the same regardless of whether we use
         # stdin/stdout or pipes.
-        tt = Communication([1, "stub", "std_io"])
+        tt = Communication([1, "stub", "std_io", "eval_manager"])
         cc = tt.get_compilation_commands(["foo.%l"])
         self.assertEqual(cc, {
             "L1": fake_compilation_commands(
@@ -142,7 +141,7 @@ class TestCompile(TaskTypeTestMixin, unittest.TestCase):
         return tt, job
 
     def assertResultsInJob(
-            self, job, success, compilation_success, text, stats):
+        self, job, success, compilation_success, text, stats):
         self.assertEqual(job.success, success)
         self.assertEqual(job.compilation_success, compilation_success)
         self.assertEqual(job.text, text)
@@ -150,7 +149,7 @@ class TestCompile(TaskTypeTestMixin, unittest.TestCase):
 
     def test_one_file_success(self):
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"],
+            [1, "stub", "fifo_io", "eval_manager"],
             {"foo.%l": FILE_FOO_L1}, {"stub.l1": STUB_L1})
         sandbox = self.expect_sandbox()
         sandbox.get_file_to_storage.return_value = "exe_digest"
@@ -175,7 +174,7 @@ class TestCompile(TaskTypeTestMixin, unittest.TestCase):
 
     def test_one_file_compilation_failure(self):
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"],
+            [1, "stub", "fifo_io", "eval_manager"],
             {"foo.%l": FILE_FOO_L1}, {"stub.l1": STUB_L1})
         self.compilation_step.return_value = True, False, TEXT, STATS_RE
         sandbox = self.expect_sandbox()
@@ -192,7 +191,7 @@ class TestCompile(TaskTypeTestMixin, unittest.TestCase):
     def test_one_file_sandbox_failure(self):
         # Sandbox (or CMS) failure. It's the admins' fault.
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"],
+            [1, "stub", "fifo_io", "eval_manager"],
             {"foo.%l": FILE_FOO_L1}, {"stub.l1": STUB_L1})
         self.compilation_step.return_value = False, None, None, None
         sandbox = self.expect_sandbox()
@@ -206,7 +205,7 @@ class TestCompile(TaskTypeTestMixin, unittest.TestCase):
 
     def test_many_files_success(self):
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"],
+            [1, "stub", "fifo_io", "eval_manager"],
             {"foo.%l": FILE_FOO_L1, "bar.%l": FILE_BAR_L1},
             {"stub.l1": STUB_L1})
         sandbox = self.expect_sandbox()
@@ -235,7 +234,7 @@ class TestCompile(TaskTypeTestMixin, unittest.TestCase):
 
     def test_no_stub_success(self):
         tt, job = self.prepare(
-            [1, "alone", "fifo_io"],
+            [1, "alone", "fifo_io", "eval_manager"],
             {"foo.%l": FILE_FOO_L1}, {})
         sandbox = self.expect_sandbox()
         sandbox.get_file_to_storage.return_value = "exe_digest"
@@ -259,7 +258,7 @@ class TestCompile(TaskTypeTestMixin, unittest.TestCase):
     def test_no_stub_but_stub_given_success(self):
         # A stub is given but should be ignored.
         tt, job = self.prepare(
-            [1, "alone", "fifo_io"],
+            [1, "alone", "fifo_io", "eval_manager"],
             {"foo.%l": FILE_FOO_L1}, {"stub.l1": STUB_L1})
         sandbox = self.expect_sandbox()
         sandbox.get_file_to_storage.return_value = "exe_digest"
@@ -330,6 +329,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
         job = self.job(executables, managers)
         self.evaluation_step_after_run.return_value = (True, True, STATS_OK)
         self.extract_outcome_and_text.return_value = (OUTCOME, TEXT)
+        self.eval_output.return_value = (True, OUTCOME, TEXT)
         return tt, job
 
     def assertResultsInJob(self, job, success, outcome, text, stats):
@@ -353,7 +353,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
     @patch.object(config, "trusted_sandbox_max_memory_kib", 1234 * 1024)
     def test_single_process_success(self):
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"],
+            [1, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO}, {"manager": MANAGER})
         sandbox_mgr = self.expect_sandbox()
         sandbox_usr = self.expect_sandbox()
@@ -407,7 +407,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
         # If the time limit is longer than trusted step default time limit,
         # the manager run should use the task time limit.
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"],
+            [1, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO}, {"manager": MANAGER})
         sandbox_mgr = self.expect_sandbox()
         self.expect_sandbox()
@@ -421,7 +421,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
     def test_single_process_missing_manager(self):
         # Manager is missing, should terminate without creating sandboxes.
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"], {"foo": EXE_FOO}, {})
+            [1, "stub", "fifo_io", "eval_manager"], {"foo": EXE_FOO}, {})
 
         tt.evaluate(job, self.file_cacher)
 
@@ -431,7 +431,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
         # For some reason, no user executables. Should terminate without
         # creating sandboxes.
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"], {}, {"manager": MANAGER})
+            [1, "stub", "fifo_io", "eval_manager"], {}, {"manager": MANAGER})
 
         tt.evaluate(job, self.file_cacher)
 
@@ -441,7 +441,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
         # For some reason, two user executables. Should terminate without
         # creating sandboxes.
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"],
+            [1, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO, "bar": EXE_FOO}, {"manager": MANAGER})
 
         tt.evaluate(job, self.file_cacher)
@@ -451,7 +451,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
     def test_single_process_manager_failure(self):
         # Manager had problems, it's not the user's fault.
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"],
+            [1, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO}, {"manager": MANAGER})
         sandbox_mgr = self.expect_sandbox()
         sandbox_usr = self.expect_sandbox()
@@ -469,7 +469,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
     def test_single_process_manager_sandbox_failure(self):
         # Manager sandbox had problems, it's not the user's fault.
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"],
+            [1, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO}, {"manager": MANAGER})
         sandbox_mgr = self.expect_sandbox()
         sandbox_usr = self.expect_sandbox()
@@ -488,7 +488,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
         # Manager had problems, it's not the user's fault even if also their
         # submission had problems.
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"],
+            [1, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO}, {"manager": MANAGER})
         sandbox_mgr = self.expect_sandbox()
         sandbox_usr = self.expect_sandbox()
@@ -506,7 +506,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
     def test_single_process_user_sandbox_failure(self):
         # User sandbox had problems, it's not the user's fault.
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"],
+            [1, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO}, {"manager": MANAGER})
         sandbox_mgr = self.expect_sandbox()
         sandbox_usr = self.expect_sandbox()
@@ -524,7 +524,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
     def test_single_process_user_failure(self):
         # User program had problems, it's the user's fault.
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"],
+            [1, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO}, {"manager": MANAGER})
         sandbox_mgr = self.expect_sandbox()
         sandbox_usr = self.expect_sandbox()
@@ -543,7 +543,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
 
     def test_single_process_get_output_success(self):
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"],
+            [1, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO}, {"manager": MANAGER})
         job.get_output = True
         sandbox_mgr = self.expect_sandbox()
@@ -563,7 +563,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
 
     def test_single_process_only_execution_success(self):
         tt, job = self.prepare(
-            [1, "stub", "fifo_io"],
+            [1, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO}, {"manager": MANAGER})
         job.only_execution = True
         self.expect_sandbox()
@@ -578,7 +578,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
 
     def test_single_process_std_io(self):
         tt, job = self.prepare(
-            [1, "stub", "std_io"], {"foo": EXE_FOO}, {"manager": MANAGER})
+            [1, "stub", "std_io", "eval_manager"], {"foo": EXE_FOO}, {"manager": MANAGER})
         self.expect_sandbox()
         sandbox_usr = self.expect_sandbox()
 
@@ -597,7 +597,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
     @patch.object(config, "trusted_sandbox_max_memory_kib", 1234 * 1024)
     def test_many_processes_success(self):
         tt, job = self.prepare(
-            [2, "stub", "fifo_io"],
+            [2, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO}, {"manager": MANAGER})
         sandbox_mgr = self.expect_sandbox()
         sandbox_usr0 = self.expect_sandbox()
@@ -668,7 +668,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
         # If the time limit is longer than trusted step default time limit,
         # the manager run should use the task time limit.
         tt, job = self.prepare(
-            [2, "stub", "fifo_io"],
+            [2, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO}, {"manager": MANAGER})
         sandbox_mgr = self.expect_sandbox()
         self.expect_sandbox()
@@ -683,7 +683,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
     def test_many_processes_first_user_failure(self):
         # One of the user programs had problems, it's the user's fault.
         tt, job = self.prepare(
-            [2, "stub", "fifo_io"],
+            [2, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO}, {"manager": MANAGER})
         sandbox_mgr = self.expect_sandbox()
         sandbox_usr0 = self.expect_sandbox()
@@ -706,7 +706,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
     def test_many_processes_last_user_failure(self):
         # One of the user programs had problems, it's the user's fault.
         tt, job = self.prepare(
-            [2, "stub", "fifo_io"],
+            [2, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO}, {"manager": MANAGER})
         sandbox_mgr = self.expect_sandbox()
         sandbox_usr0 = self.expect_sandbox()
@@ -729,7 +729,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
     def test_many_processes_merged_timeout(self):
         # Solution was ok, but considering all runtimes, it hit timeout.
         tt, job = self.prepare(
-            [2, "stub", "fifo_io"],
+            [2, "stub", "fifo_io", "eval_manager"],
             {"foo": EXE_FOO}, {"manager": MANAGER})
         job.time_limit = 2.5
         stats0 = dict(STATS_OK)
@@ -760,7 +760,7 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
 
     def test_many_processes_std_io(self):
         tt, job = self.prepare(
-            [2, "stub", "std_io"], {"foo": EXE_FOO}, {"manager": MANAGER})
+            [2, "stub", "std_io", "eval_manager"], {"foo": EXE_FOO}, {"manager": MANAGER})
         self.expect_sandbox()
         sandbox_usr0 = self.expect_sandbox()
         sandbox_usr1 = self.expect_sandbox()
@@ -781,6 +781,82 @@ class TestEvaluate(TaskTypeTestMixin, FileSystemMixin, unittest.TestCase):
                  stdout_redirect="/fifo1/u1_to_m",
                  multiprocess=ANY)
         ], any_order=True)
+
+    def test_single_process_eval_white_diff(self):
+        tt, job = self.prepare(
+            [1, "stub", "fifo_io", "eval_diff"],
+            {"foo": EXE_FOO}, {"manager": MANAGER})
+        job.get_output = True
+        sandbox_mgr = self.expect_sandbox()
+        self.expect_sandbox()
+        sandbox_mgr.get_file_to_storage.return_value = "digest of output.txt"
+
+        tt.evaluate(job, self.file_cacher)
+
+        # With get_output, submission is run, output is eval'd, and in addition
+        # we store (a truncation of) the user output.
+        sandbox_mgr.get_file_to_storage.assert_called_once_with(
+            "output.txt", ANY, trunc_len=ANY)
+        self.assertEqual(job.user_output, "digest of output.txt")
+        self.evaluation_step_after_run.assert_called()
+        self.eval_output.assert_called_once_with(
+            ANY,
+            ANY,
+            None,
+            user_output_path=ANY,
+        )
+        self.assertEqual(job.success, True)
+
+    def test_single_process_eval_checker(self):
+        tt, job = self.prepare(
+            [1, "stub", "fifo_io", "eval_checker"],
+            {"foo": EXE_FOO}, {"manager": MANAGER})
+        job.get_output = True
+        sandbox_mgr = self.expect_sandbox()
+        self.expect_sandbox()
+        sandbox_mgr.get_file_to_storage.return_value = "digest of output.txt"
+
+        tt.evaluate(job, self.file_cacher)
+
+        # With get_output, submission is run, output is eval'd, and in addition
+        # we store (a truncation of) the user output.
+        sandbox_mgr.get_file_to_storage.assert_called_once_with(
+            "output.txt", ANY, trunc_len=ANY)
+        self.assertEqual(job.user_output, "digest of output.txt")
+        self.evaluation_step_after_run.assert_called()
+        self.eval_output.assert_called_once_with(
+            ANY,
+            ANY,
+            "checker",
+            user_output_path=ANY,
+        )
+        self.assertEqual(job.success, True)
+
+    def test_single_process_eval_checker_failure(self):
+        tt, job = self.prepare(
+            [1, "stub", "fifo_io", "eval_checker"],
+            {"foo": EXE_FOO}, {"manager": MANAGER})
+        job.get_output = True
+        sandbox_mgr = self.expect_sandbox()
+        self.expect_sandbox()
+        sandbox_mgr.get_file_to_storage.return_value = "digest of output.txt"
+        self.eval_output.return_value = (False, OUTCOME, TEXT)
+
+        tt.evaluate(job, self.file_cacher)
+
+        # With get_output, submission is run, output is eval'd, and in addition
+        # we store (a truncation of) the user output.
+        sandbox_mgr.get_file_to_storage.assert_called_once_with(
+            "output.txt", ANY, trunc_len=ANY)
+        self.assertEqual(job.user_output, "digest of output.txt")
+        self.evaluation_step_after_run.assert_called()
+        self.eval_output.assert_called_once_with(
+            ANY,
+            ANY,
+            "checker",
+            user_output_path=ANY,
+        )
+        self.assertEqual(job.success, False)
 
 
 if __name__ == "__main__":

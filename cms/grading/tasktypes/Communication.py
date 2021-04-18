@@ -33,7 +33,7 @@ from cms.grading.languagemanager import LANGUAGES, get_language
 from cms.grading.steps import compilation_step, evaluation_step_before_run, \
     evaluation_step_after_run, extract_outcome_and_text, \
     human_evaluation_message, merge_execution_stats, trusted_step
-from cms.grading.tasktypes import check_files_number
+from cms.grading.tasktypes import check_files_number, eval_output
 from . import TaskType, check_executables_number, check_manager_present, \
     create_sandbox, delete_sandbox, is_manager_for_compilation
 
@@ -76,6 +76,8 @@ class Communication(TaskType):
     """
     # Filename of the manager (the stand-alone, admin-provided program).
     MANAGER_FILENAME = "manager"
+    # Filename of the checker.
+    CHECKER_FILENAME = "checker"
     # Basename of the stub, used in the stub filename and as the main class in
     # languages that require us to specify it.
     STUB_BASENAME = "stub"
@@ -91,6 +93,9 @@ class Communication(TaskType):
     COMPILATION_STUB = "stub"
     USER_IO_STD = "std_io"
     USER_IO_FIFOS = "fifo_io"
+    OUTPUT_EVAL_MANAGER = "eval_manager"
+    OUTPUT_EVAL_DIFF = "eval_diff"
+    OUTPUT_EVAL_CHECKER = "eval_checker"
 
     ALLOW_PARTIAL_SUBMISSION = False
 
@@ -114,7 +119,15 @@ class Communication(TaskType):
          USER_IO_FIFOS: "User processes read from and write to fifos, "
                         "whose paths are given as arguments"})
 
-    ACCEPTED_PARAMETERS = [_NUM_PROCESSES, _COMPILATION, _USER_IO]
+    _EVALUATION = ParameterTypeChoice(
+        "Output evaluation",
+        "output_eval",
+        "",
+        {OUTPUT_EVAL_MANAGER: "Use manager output as evaluation result",
+         OUTPUT_EVAL_DIFF: "Use white diff to evaluate manager output",
+         OUTPUT_EVAL_CHECKER: "Use checker to evaluate manager output"})
+
+    ACCEPTED_PARAMETERS = [_NUM_PROCESSES, _COMPILATION, _USER_IO, _EVALUATION]
 
     @property
     def name(self):
@@ -127,6 +140,7 @@ class Communication(TaskType):
         self.num_processes = self.parameters[0]
         self.compilation = self.parameters[1]
         self.io = self.parameters[2]
+        self.eval = self.parameters[3]
 
     def get_compilation_commands(self, submission_format):
         """See TaskType.get_compilation_commands."""
@@ -161,6 +175,12 @@ class Communication(TaskType):
 
     def _uses_fifos(self):
         return self.io == self.USER_IO_FIFOS
+
+    def _uses_white_diff(self):
+        return self.eval == self.OUTPUT_EVAL_DIFF
+
+    def _uses_checker(self):
+        return self.eval == self.OUTPUT_EVAL_CHECKER
 
     @staticmethod
     def _executable_filename(codenames, language):
@@ -404,7 +424,21 @@ class Communication(TaskType):
 
         # Otherwise, we use the manager to obtain the outcome.
         else:
-            outcome, text = extract_outcome_and_text(sandbox_mgr)
+            # If the manager output is used as evaluation result
+            if not self._uses_white_diff() and not self._uses_checker():
+                outcome, text = extract_outcome_and_text(sandbox_mgr)
+            # Otherwise evaluate manager output to get evaluation result
+            else:
+                if not sandbox_mgr.file_exists(sandbox_mgr.stdout_file):
+                    outcome = 0.0
+                    text = [N_("Evaluation didn't produce file %s"),
+                            sandbox_mgr.stdout_file]
+                else:
+                    success, outcome, text = eval_output(
+                        file_cacher, job,
+                        self.CHECKER_FILENAME if self._uses_checker() else None,
+                        user_output_path=sandbox_mgr.relative_path(
+                            sandbox_mgr.stdout_file))
 
         # If asked so, save the output file with additional information,
         # provided that it exists.

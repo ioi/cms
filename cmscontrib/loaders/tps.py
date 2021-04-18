@@ -97,7 +97,17 @@ class TpsTaskLoader(TaskLoader):
             par_processes = '%s_num_processes' % par_prefix
             if par_processes not in task_type_parameters:
                 task_type_parameters[par_processes] = 1
-            return [task_type_parameters[par_processes], "stub", "fifo_io"]
+
+            # Checker
+            checker_dir = os.path.join(self.path, "checker")
+            checker_src = os.path.join(checker_dir, "checker.cpp")
+
+            return [
+                task_type_parameters[par_processes],
+                "stub",
+                "fifo_io",
+                "eval_checker" if os.path.exists(checker_src) else "eval_manager"
+            ]
 
         if task_type == 'TwoSteps' or task_type == 'OutputOnly':
             return [evaluation_param]

@@ -30,6 +30,7 @@ task_info = {
     "TaskTypeOptions_{{dataset_id}}_Communication_num_processes": "2",
     "TaskTypeOptions_{{dataset_id}}_Communication_compilation": "stub",
     "TaskTypeOptions_{{dataset_id}}_Communication_user_io": "fifo_io",
+    "TaskTypeOptions_{{dataset_id}}_Communication_output_eval": "eval_manager",
     "score_type_{{dataset_id}}": "Sum",
     "score_type_parameters_{{dataset_id}}": "50",
 }
