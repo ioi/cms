@@ -105,7 +105,7 @@ class TpsTaskLoader(TaskLoader):
             return [
                 task_type_parameters[par_processes],
                 "stub",
-                "fifo_io",
+                "std_io",
                 "eval_checker" if os.path.exists(checker_src) else "eval_manager"
             ]
 
