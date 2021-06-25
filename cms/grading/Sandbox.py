@@ -865,8 +865,14 @@ class IsolateSandbox(SandboxBase):
         # sequentially, with a wrap-around.
         # FIXME This is the only use of FileCacher.service, and it's an
         # improper use! Avoid it!
+
+        # IOI 2021 Hack for more than 100 workers:
+        # shard 0 = 10 - 19
+        # shard 98 = 990 - 999
+        # shard 99 = shard 0
+        
         if file_cacher is not None and file_cacher.service is not None:
-            box_id = ((file_cacher.service.shard + 1) * 10
+            box_id = (((file_cacher.service.shard % 99) + 1) * 10
                       + (IsolateSandbox.next_id % 10)) % 1000
         else:
             box_id = IsolateSandbox.next_id % 10
