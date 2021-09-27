@@ -40,7 +40,7 @@ class TestAddStatement(DatabaseMixin, FileSystemMixin, unittest.TestCase):
     def setUp(self):
         super().setUp()
 
-        self.task = self.add_task()
+        self.task = self.add_task(primary_statements=['id'])
         self.session.commit()
 
     def tearDown(self):
@@ -65,48 +65,62 @@ class TestAddStatement(DatabaseMixin, FileSystemMixin, unittest.TestCase):
 
     def test_success(self):
         path = self.write_file("statement.pdf", _CONTENT_1)
-        self.assertTrue(add_statement(self.task.name, "en", path, False))
+        self.assertTrue(add_statement(self.task.name, "en", path, False, False))
         self.assertStatementInDb("en", _DIGEST_1)
 
     def test_success_another_statement(self):
         path = self.write_file("statement.pdf", _CONTENT_1)
-        self.assertTrue(add_statement(self.task.name, "en", path, False))
+        self.assertTrue(add_statement(self.task.name, "en", path, False, False))
 
         path = self.write_file("statement2.pdf", _CONTENT_2)
-        self.assertTrue(add_statement(self.task.name, "zh_TW", path, False))
+        self.assertTrue(add_statement(self.task.name, "zh_TW", path, False, False))
 
         self.assertStatementInDb("en", _DIGEST_1)
         self.assertStatementInDb("zh_TW", _DIGEST_2)
 
     def test_no_file(self):
         path = self.get_path("statement.pdf")
-        self.assertFalse(add_statement(self.task.name, "en", path, False))
+        self.assertFalse(add_statement(self.task.name, "en", path, False, False))
         self.assertStatementNotInDb("en")
 
     def test_not_pdf(self):
         path = self.write_file("statement.txt", _CONTENT_1)
-        self.assertFalse(add_statement(self.task.name, "en", path, False))
+        self.assertFalse(add_statement(self.task.name, "en", path, False, False))
         self.assertStatementNotInDb("en")
 
     def test_dont_overwrite(self):
         path = self.write_file("statement.pdf", _CONTENT_1)
-        self.assertTrue(add_statement(self.task.name, "en", path, False))
+        self.assertTrue(add_statement(self.task.name, "en", path, False, False))
         self.assertStatementInDb("en", _DIGEST_1)
 
         # We try to overwrite, should fail and keep the previous digest.
         path = self.write_file("statement2.pdf", _CONTENT_2)
-        self.assertFalse(add_statement(self.task.name, "en", path, False))
+        self.assertFalse(add_statement(self.task.name, "en", path, False, False))
         self.assertStatementInDb("en", _DIGEST_1)
 
     def test_overwrite(self):
         path = self.write_file("statement.pdf", _CONTENT_1)
-        self.assertTrue(add_statement(self.task.name, "en", path, False))
+        self.assertTrue(add_statement(self.task.name, "en", path, False, False))
         self.assertStatementInDb("en", _DIGEST_1)
 
         # We try to overwrite and force it.
         path = self.write_file("statement2.pdf", _CONTENT_2)
-        self.assertTrue(add_statement(self.task.name, "en", path, True))
+        self.assertTrue(add_statement(self.task.name, "en", path, True, False))
         self.assertStatementInDb("en", _DIGEST_2)
+
+    def test_default_false(self):
+        path = self.write_file("statement.pdf", _CONTENT_1)
+        self.assertTrue(add_statement(self.task.name, "id", path, False, False))
+        self.session.refresh(self.task)
+        self.assertTrue("id" not in self.task.primary_statements)
+        self.assertStatementInDb("id", _DIGEST_1)
+
+    def test_default_true(self):
+        path = self.write_file("statement.pdf", _CONTENT_1)
+        self.assertTrue(add_statement(self.task.name, "en", path, False, True))
+        self.session.refresh(self.task)
+        self.assertTrue("en" in self.task.primary_statements)
+        self.assertStatementInDb("en", _DIGEST_1)
 
 
 if __name__ == "__main__":
