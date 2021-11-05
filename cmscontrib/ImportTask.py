@@ -32,6 +32,9 @@ database.
 # We enable monkey patching to make many libraries gevent-friendly
 # (for instance, urllib3, used by requests)
 import gevent.monkey
+from cmscommon.datetime import make_timestamp
+
+
 gevent.monkey.patch_all()  # noqa
 
 import argparse
@@ -56,7 +59,7 @@ class TaskImporter:
     """
 
     def __init__(self, path, prefix, override_name, update, no_statement,
-                 contest_id, loader_class):
+                 contest_id, loader_class, dataset_description):
         """Create the importer object for a task.
 
         path (string): the path to the file or directory to import.
@@ -76,6 +79,7 @@ class TaskImporter:
         self.no_statement = no_statement
         self.contest_id = contest_id
         self.loader = loader_class(os.path.abspath(path), self.file_cacher)
+        self.dataset_description = dataset_description
 
     def do_import(self):
         """Get the task from the TaskLoader and store it."""
@@ -98,6 +102,17 @@ class TaskImporter:
         # Apply the prefix, if there is one
         if self.prefix:
             task.name = self.prefix + task.name
+
+        if self.dataset_description is not None:
+            if self.dataset_description == "":
+                self.dataset_description = f"Imported dataset ({make_timestamp()})"
+
+            if len(task.datasets) > 1:
+                logger.error(f"Unable to set dataset description when multiple dataset present")
+                return False
+
+            for dataset in task.datasets:
+                dataset.description = self.dataset_description
 
         # Store
         logger.info("Creating task on the database.")
@@ -176,6 +191,14 @@ def main():
         help="update an existing task"
     )
     parser.add_argument(
+        "-d", "--dataset",
+        action="store", type=utf8_decoder,
+        nargs='?', const="",
+        default=None,
+        help="dataset name. omitting this arguments will overwrite the default dataset. empty dataset name will "
+             "generate a new dataset"
+    )
+    parser.add_argument(
         "-S", "--no-statement",
         action="store_true",
         help="do not import / update task statement"
@@ -215,7 +238,8 @@ def main():
                             contest_id=args.contest_id,
                             prefix=args.prefix,
                             override_name=args.name,
-                            loader_class=loader_class)
+                            loader_class=loader_class,
+                            dataset_description=args.dataset)
     success = importer.do_import()
     return 0 if success is True else 1
 
