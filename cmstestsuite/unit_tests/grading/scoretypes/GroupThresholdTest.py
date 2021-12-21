@@ -34,6 +34,7 @@ class TestGroupThreshold(ScoreTypeTestMixin, unittest.TestCase):
             "0_0": True,
             "1_0": True,
             "1_1": True,
+            "1_2": True,
             "2_0": True,
             "2_1": False,
             "3_0": False,
@@ -122,7 +123,7 @@ class TestGroupThreshold(ScoreTypeTestMixin, unittest.TestCase):
     def test_max_scores_number(self):
         """Test max score is correct when groups are number-defined."""
         s1, s2, s3 = 10.5, 30.5, 59
-        parameters = [[0, 1, 0], [s1, 2, 10], [s2, 2, 20], [s3, 2, 30]]
+        parameters = [[0, 1, 0], [s1, 3, 10], [s2, 2, 20], [s3, 2, 30]]
         header = ["Subtask 0 (0)",
                   "Subtask 1 (10.5)", "Subtask 2 (30.5)", "Subtask 3 (59)"]
 
@@ -159,10 +160,18 @@ class TestGroupThreshold(ScoreTypeTestMixin, unittest.TestCase):
         self.assertComputeScore(
             st.compute_score(sr),
             s1 + s2 + s3, s1, [0, s1, s2, s3], [
-                {"idx": 0},
-                {"idx": 1},
-                {"idx": 2},
-                {"idx": 3}
+                {"idx": 0, "testcases": [
+                    {"show_in_restricted_feedback": True}]},
+                {"idx": 1, "testcases": [
+                    {"show_in_restricted_feedback": True},
+                    {"show_in_restricted_feedback": True},
+                    {"show_in_restricted_feedback": True}]},
+                {"idx": 2, "testcases": [
+                    {"show_in_restricted_feedback": True},
+                    {"show_in_restricted_feedback": True}]},
+                {"idx": 3, "testcases": [
+                    {"show_in_restricted_feedback": True},
+                    {"show_in_restricted_feedback": True}]}
             ])
 
         # Some non-public subtask is incorrect.
@@ -170,35 +179,59 @@ class TestGroupThreshold(ScoreTypeTestMixin, unittest.TestCase):
         self.assertComputeScore(
             st.compute_score(sr),
             s1 + s2, s1, [0, s1, s2, 0], [
-                {"idx": 0},
-                {"idx": 1},
-                {"idx": 2},
-                {"idx": 3}
+               {"idx": 0, "testcases": [
+                    {"show_in_restricted_feedback": True}]},
+                {"idx": 1, "testcases": [
+                    {"show_in_restricted_feedback": True},
+                    {"show_in_restricted_feedback": True},
+                    {"show_in_restricted_feedback": True}]},
+                {"idx": 2, "testcases": [
+                    {"show_in_restricted_feedback": True},
+                    {"show_in_restricted_feedback": True}]},
+                {"idx": 3, "testcases": [
+                    {"show_in_restricted_feedback": False},
+                    {"show_in_restricted_feedback": False}]}
             ])
 
         # Also the public subtask is incorrect.
-        self.set_outcome(sr, "1_0", 12.5)
         self.set_outcome(sr, "1_1", 12.5)
+        self.set_outcome(sr, "1_2", 12.5)
         self.assertComputeScore(
             st.compute_score(sr),
             s2, 0.0, [0, 0, s2, 0], [
-                {"idx": 0},
-                {"idx": 1},
-                {"idx": 2},
-                {"idx": 3}
+               {"idx": 0, "testcases": [
+                    {"show_in_restricted_feedback": True}]},
+                {"idx": 1, "testcases": [
+                    {"show_in_restricted_feedback": True},
+                    {"show_in_restricted_feedback": False},
+                    {"show_in_restricted_feedback": False}]},
+                {"idx": 2, "testcases": [
+                    {"show_in_restricted_feedback": True},
+                    {"show_in_restricted_feedback": True}]},
+                {"idx": 3, "testcases": [
+                    {"show_in_restricted_feedback": False},
+                    {"show_in_restricted_feedback": False}]}
             ])
 
         # Outcome equal to 0 is special and treated as error even if it is
         # below the threshold.
-        self.set_outcome(sr, "1_0", 0.0)
         self.set_outcome(sr, "1_1", 0.0)
+        self.set_outcome(sr, "1_2", 0.0)
         self.assertComputeScore(
             st.compute_score(sr),
             s2, 0.0, [0, 0, s2, 0], [
-                {"idx": 0},
-                {"idx": 1},
-                {"idx": 2},
-                {"idx": 3}
+               {"idx": 0, "testcases": [
+                    {"show_in_restricted_feedback": True}]},
+                {"idx": 1, "testcases": [
+                    {"show_in_restricted_feedback": False},
+                    {"show_in_restricted_feedback": True},
+                    {"show_in_restricted_feedback": False}]},
+                {"idx": 2, "testcases": [
+                    {"show_in_restricted_feedback": True},
+                    {"show_in_restricted_feedback": True}]},
+                {"idx": 3, "testcases": [
+                    {"show_in_restricted_feedback": False},
+                    {"show_in_restricted_feedback": False}]}
             ])
 
 
