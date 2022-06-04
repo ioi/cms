@@ -238,13 +238,13 @@ class EvaluationService(TriggeredService):
     INVALIDATE_EVALUATION = 1
 
     # How often we check for stale workers.
-    WORKER_TIMEOUT_CHECK_TIME = timedelta(seconds=300)
+    WORKER_TIMEOUT_CHECK_TIME = timedelta(seconds=67)
 
     # How often we check if a worker is connected.
-    WORKER_CONNECTION_CHECK_TIME = timedelta(seconds=10)
+    WORKER_CONNECTION_CHECK_TIME = timedelta(seconds=37)
 
     # How many worker results we accumulate before processing them.
-    RESULT_CACHE_SIZE = 100
+    RESULT_CACHE_SIZE = 1024
     # The maximum time since the last result before processing.
     MAX_FLUSHING_TIME_SECONDS = 2
 
