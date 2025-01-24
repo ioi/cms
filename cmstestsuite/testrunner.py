@@ -3,6 +3,7 @@
 # Contest Management System - http://cms-dev.github.io/
 # Copyright © 2015-2018 Stefano Maggiolo <s.maggiolo@gmail.com>
 # Copyright © 2016 Amir Keivan Mohtashami <akmohtashami97@gmail.com>
+# Copyright © 2022 William Di Luigi <williamdiluigi@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -37,6 +38,9 @@ logger = logging.getLogger(__name__)
 
 
 class TestRunner:
+    # Tell pytest not to collect this class as test
+    __test__ = False
+
     def __init__(self, test_list, contest_id=None, workers=1, cpu_limits=None):
         self.start_time = datetime.datetime.now()
         self.last_end_time = self.start_time
@@ -92,6 +96,12 @@ class TestRunner:
         CONFIG["CONFIG_PATH"] = "%s/config/cms.conf" % CONFIG["TEST_DIR"]
         if CONFIG["TEST_DIR"] is None:
             CONFIG["CONFIG_PATH"] = "/usr/local/etc/cms.conf"
+
+        # Override CMS config path when environment variable is present
+        CMS_CONFIG_ENV_VAR = "CMS_CONFIG"
+        if CMS_CONFIG_ENV_VAR in os.environ:
+            CONFIG["CONFIG_PATH"] = os.environ[CMS_CONFIG_ENV_VAR]
+
         return self.framework.get_cms_config()
 
     def log_elapsed_time(self):

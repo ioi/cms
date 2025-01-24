@@ -21,13 +21,21 @@
 
 import logging
 
+import collections
+try:
+    collections.MutableMapping
+except:
+    # Monkey-patch: Tornado 4.5.3 does not work on Python 3.11 by default
+    collections.MutableMapping = collections.abc.MutableMapping
+
 try:
     import tornado4.wsgi as tornado_wsgi
 except ImportError:
     import tornado.wsgi as tornado_wsgi
 from gevent.pywsgi import WSGIServer
 from werkzeug.contrib.fixers import ProxyFix
-from werkzeug.wsgi import DispatcherMiddleware, SharedDataMiddleware
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
+from werkzeug.middleware.shared_data import SharedDataMiddleware
 
 from cms.db.filecacher import FileCacher
 from cms.server.file_middleware import FileServerMiddleware
